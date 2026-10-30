@@ -1,27 +1,25 @@
 import SwiftUI
 
 struct ContentView: View {
-    // Verschiedene Themen mit jeweils passenden Emojis (paartauglich definiert)
-    let transportEmojis = ["🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐"]
+    let fahrzeugeEmojis = ["🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐"]
     let naturEmojis = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯"]
     let menschenEmojis = ["😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃"]
 
-    // @State-Variable für die aktuell aktiven Karten des gewählten Themas
     @State private var aktuelleEmojis: [String] = []
-
+    @State private var aktuelleFarbe: Color = .red
     var body: some View {
         VStack {
-            // 3. Titel "Memospiel!" am oberen Bildschirmrand mit großer Schriftart
             Text("Memospiel!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .padding(.top)
 
             ScrollView {
-                // Karten-Grid
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))]) {
+                let minWidth = widthThatBestFits(cardCount: aktuelleEmojis.count)
+                
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: minWidth))]) {
                     ForEach(aktuelleEmojis.indices, id: \.self) { index in
-                        KartenAnsicht(inhalt: aktuelleEmojis[index])
+                        KartenAnsicht(inhalt: aktuelleEmojis[index], kartenFarbe: aktuelleFarbe)
                     }
                 }
                 .padding()
@@ -29,55 +27,69 @@ struct ContentView: View {
 
             Spacer()
 
-            // 4., 7., 8. Buttons zur Themenauswahl am unteren Rand
             HStack(spacing: 30) {
-                themenButton(titel: "Transport", systemBild: "car.fill", emojis: transportEmojis)
-                themenButton(titel: "Natur", systemBild: "leaf.fill", emojis: naturEmojis)
-                themenButton(titel: "Menschen", systemBild: "person.fill", emojis: menschenEmojis)
+                themenButton(titel: "Fahrzeuge", systemBild: "car.fill", emojis: fahrzeugeEmojis, farbe: .blue)
+                themenButton(titel: "Natur", systemBild: "leaf.fill", emojis: naturEmojis, farbe: .green)
+                themenButton(titel: "Menschen", systemBild: "person.fill", emojis: menschenEmojis, farbe: .orange)
             }
             .padding(.bottom)
         }
         .padding()
     }
 
-    // Hilfsfunktion zur Erstellung der Themen-Buttons (Vermeidung von Wiederholungen)
+    
     @ViewBuilder
-    func themenButton(titel: String, systemBild: String, emojis: [String]) -> some View {
+    func themenButton(titel: String, systemBild: String, emojis: [String], farbe: Color) -> some View {
         Button(action: {
-            // 5. & 6. Erzeuge Kartenpaare (2x jedes Emoji) und mische sie zufällig durch
-            let anzahlPaare = Int.random(in: 4...emojis.count)
+            //zufällige Anzahl von Paaren (mindestens 2 bis maximal Array-Länge)
+            let anzahlPaare = Int.random(in: 2...emojis.count)
             let auswahl = Array(emojis.prefix(anzahlPaare))
+            
+            // Paare bilden (2x gleiches Emoji) und per .shuffled() zufällig mischen
             aktuelleEmojis = (auswahl + auswahl).shuffled()
+            aktuelleFarbe = farbe
         }) {
             VStack(spacing: 4) {
                 Image(systemName: systemBild)
-                    .font(.largeTitle) // Größere Darstellung für das Symbol
+                    .font(.largeTitle)
                 Text(titel)
-                    .font(.caption)    // Deutlich kleinere Schriftart für die Beschreibung
+                    .font(.caption)
             }
+        }
+    }
+
+    //Kartenbreite in Abhängigkeit von der Gesamtanzahl der Karten
+    func widthThatBestFits(cardCount: Int) -> CGFloat {
+        if cardCount > 16 {
+            return 60
+        } else if cardCount > 8 {
+            return 75
+        } else {
+            return 95
         }
     }
 }
 
-// Ansicht für eine einzelne Karte (10. Standardmäßig verdeckt)
+
 struct KartenAnsicht: View {
     let inhalt: String
-    @State private var istDeutlichOeffentlich: Bool = false // Startet verdeckt (false)
+    let kartenFarbe: Color
+    @State private var istDeutlichOeffentlich: Bool = false
 
     var body: some View {
         ZStack {
             let basis = RoundedRectangle(cornerRadius: 12)
             if istDeutlichOeffentlich {
                 basis.fill(.white)
-                basis.strokeBorder(lineWidth: 3).foregroundColor(.red)
+                basis.strokeBorder(lineWidth: 3).foregroundColor(kartenFarbe)
                 Text(inhalt).font(.largeTitle)
             } else {
-                basis.fill(.red) // Verdeckte Karte ist rot
+                basis.fill(kartenFarbe) // Verdeckte Karte zeigt die Themenfarbe
             }
         }
         .aspectRatio(2/3, contentMode: .fit)
         .onTapGesture {
-            istDeutlichOeffentlich.toggle() // Umschalten beim Antippen
+            istDeutlichOeffentlich.toggle()
         }
     }
 }
