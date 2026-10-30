@@ -1,88 +1,83 @@
-//
-//  ContentView.swift
-//  MemoSpiel
-//
-//  Created by Kaya, Erol Can on 30.10.26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    
-     let emojis = ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁"]
-   //g let emojis = ["1","2","3","4","5","6","7","8","9","10","11","12"]
-    
-    @State var kartenZahl = 5
-    
+    // Verschiedene Themen mit jeweils passenden Emojis (paartauglich definiert)
+    let transportEmojis = ["🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐"]
+    let naturEmojis = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯"]
+    let menschenEmojis = ["😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃"]
+
+    // @State-Variable für die aktuell aktiven Karten des gewählten Themas
+    @State private var aktuelleEmojis: [String] = []
+
     var body: some View {
         VStack {
+            // 3. Titel "Memospiel!" am oberen Bildschirmrand mit großer Schriftart
+            Text("Memospiel!")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .padding(.top)
+
             ScrollView {
-                karten
+                // Karten-Grid
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))]) {
+                    ForEach(aktuelleEmojis.indices, id: \.self) { index in
+                        KartenAnsicht(inhalt: aktuelleEmojis[index])
+                    }
+                }
+                .padding()
             }
+
             Spacer()
-            kartenSteuerungView
+
+            // 4., 7., 8. Buttons zur Themenauswahl am unteren Rand
+            HStack(spacing: 30) {
+                themenButton(titel: "Transport", systemBild: "car.fill", emojis: transportEmojis)
+                themenButton(titel: "Natur", systemBild: "leaf.fill", emojis: naturEmojis)
+                themenButton(titel: "Menschen", systemBild: "person.fill", emojis: menschenEmojis)
+            }
+            .padding(.bottom)
         }
         .padding()
     }
-    
-    var kartenSteuerungView: some View {
-        HStack {
-            kartenErzeuger
-            Spacer()
-            kartenloescher
-        }
-        .imageScale(.large)
-        .font(.largeTitle)
-    }
-    
-    var karten: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))]) {
-            ForEach(0..<kartenZahl, id: \.self) { index in
-                CardView(content: emojis[index])
-                    .aspectRatio(2/3, contentMode: .fit)
+
+    // Hilfsfunktion zur Erstellung der Themen-Buttons (Vermeidung von Wiederholungen)
+    @ViewBuilder
+    func themenButton(titel: String, systemBild: String, emojis: [String]) -> some View {
+        Button(action: {
+            // 5. & 6. Erzeuge Kartenpaare (2x jedes Emoji) und mische sie zufällig durch
+            let anzahlPaare = Int.random(in: 4...emojis.count)
+            let auswahl = Array(emojis.prefix(anzahlPaare))
+            aktuelleEmojis = (auswahl + auswahl).shuffled()
+        }) {
+            VStack(spacing: 4) {
+                Image(systemName: systemBild)
+                    .font(.largeTitle) // Größere Darstellung für das Symbol
+                Text(titel)
+                    .font(.caption)    // Deutlich kleinere Schriftart für die Beschreibung
             }
         }
-        .foregroundStyle(.orange)
-    }
-    
-    var kartenloescher: some View {
-        kartenSteuerung(by: -1, symbol: "minus.square.fill")
-    }
-    
-    var kartenErzeuger: some View {
-        kartenSteuerung(by: +1, symbol: "plus.square.fill")
-    }
-    
-    @ViewBuilder
-    func kartenSteuerung(by offset: Int, symbol: String) -> some View {
-        Button(action: {
-            kartenZahl += offset
-        }, label: {
-            Image(systemName: symbol)
-        })
-        .disabled(kartenZahl + offset < 1 || kartenZahl + offset > emojis.count)
     }
 }
 
-struct CardView: View {
-    let content: String
-    @State var istGesichtOben = false
-    
+// Ansicht für eine einzelne Karte (10. Standardmäßig verdeckt)
+struct KartenAnsicht: View {
+    let inhalt: String
+    @State private var istDeutlichOeffentlich: Bool = false // Startet verdeckt (false)
+
     var body: some View {
         ZStack {
-            let basis: RoundedRectangle = RoundedRectangle(cornerRadius: 12)
-            
-            Group {
+            let basis = RoundedRectangle(cornerRadius: 12)
+            if istDeutlichOeffentlich {
                 basis.fill(.white)
-                basis.stroke(lineWidth: 2)
-                Text(content).font(.largeTitle)
+                basis.strokeBorder(lineWidth: 3).foregroundColor(.red)
+                Text(inhalt).font(.largeTitle)
+            } else {
+                basis.fill(.red) // Verdeckte Karte ist rot
             }
-            .opacity(istGesichtOben ? 1 : 0)
-            
-            basis.fill().opacity(istGesichtOben ? 0 : 1)
         }
+        .aspectRatio(2/3, contentMode: .fit)
         .onTapGesture {
-            istGesichtOben.toggle()
+            istDeutlichOeffentlich.toggle() // Umschalten beim Antippen
         }
     }
 }
